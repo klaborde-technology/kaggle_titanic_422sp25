@@ -28,6 +28,19 @@ from sklearn.naive_bayes import GaussianNB
 from warnings import simplefilter
 import warnings
 
+def standardize(df, titles):
+    for title in titles:
+        print(title)
+        mean=df[title].mean()
+        std = np.std(df[title].to_numpy())
+        df[title]=(df[title]-mean)/std
+    return df
+
+def normalize(df, titles):
+    for title in titles:
+        df[title]=(df[title]-df[title].min())/(df[title].max()-df[title].min())
+    return df
+
 simplefilter(action="ignore", category=FutureWarning)
 warnings.filterwarnings("ignore", category=UserWarning, message=".*convergence.*")
 
@@ -104,8 +117,8 @@ test_df["Title"] = test_df["Title"].replace({
 
 # print(train_df.groupby(["Title"], as_index=False)["Survived"].mean())
 
-train_df["TicketNumber"] = train_df["Ticket"].apply(lambda x: pd.Series({"Ticket": x.split()[-1]}))
-test_df["TicketNumber"] = test_df["Ticket"].apply(lambda x: pd.Series({"Ticket": x.split()[-1]}))
+train_df["TicketNumber"] = train_df["Ticket"].apply(lambda x: x.split()[-1])
+test_df["TicketNumber"] = test_df["Ticket"].apply(lambda x: x.split()[-1])
 
 # print(train_df.groupby(["TicketNumber"], as_index=False)["Survived"].mean())
 
@@ -172,10 +185,18 @@ ode_cols = ["Family_Size_Grouped"]
 ohe_cols = ["Sex", "Embarked"]
 
 X = train_df.drop(["Survived"], axis = 1)
+X = X.drop(['TicketNumber'], axis=1)
+#normalize and standarize X
+standardized_list = ['Age','SibSp','Parch','Fare', 'Family_Size']# removed for overflow error,'TicketNumber']
+normalize_list = ['Pclass']
+X = standardize(X, standardized_list)
+X = normalize(X, normalize_list)
 y = train_df["Survived"]
-# X_test = test_df.drop(["Age_Cut", "Fare_Cut"], axis = 1)
+X_test = test_df.drop(["Age_Cut", "Fare_Cut"], axis = 1)
+X_test = standardize(X_test, standardized_list)
+X_test = normalize(X_test, normalize_list)
 
-X_train, X_test, y_train, y_test = train_test_split(X, y, 
+X_train, X_val, y_train, y_val = train_test_split(X, y, 
                                                     test_size=0.20, stratify=y, 
                                                     random_state=42)
 
@@ -326,8 +347,6 @@ pipefinalgnb.fit(X_train, y_train)
 print("------------------------GaussianNB------------------------------------\n")
 print(CV_gnb.best_params_)
 print(CV_gnb.best_score_)
-
-#Use PCA
 
 y_pred = CV_rfc.best_estimator_.predict(X_test)
 y_pred_2 = pipefinaldtc.predict(X_test)

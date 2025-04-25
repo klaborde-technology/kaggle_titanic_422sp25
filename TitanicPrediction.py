@@ -24,6 +24,19 @@ from sklearn.naive_bayes import GaussianNB
 from warnings import simplefilter
 import warnings
 
+def standardize(df, titles):
+    for title in titles:
+        print(title)
+        mean=df[title].mean()
+        std = np.std(df[title].to_numpy())
+        df[title]=(df[title]-mean)/std
+    return df
+
+def normalize(df, titles):
+    for title in titles:
+        df[title]=(df[title]-df[title].min())/(df[title].max()-df[title].min())
+    return df
+
 simplefilter(action="ignore", category=FutureWarning)
 warnings.filterwarnings("ignore", category=UserWarning, message=".*convergence.*")
 
@@ -168,8 +181,16 @@ ode_cols = ["Family_Size_Grouped"]
 ohe_cols = ["Sex", "Embarked"]
 
 X = train_df.drop(["Survived"], axis = 1)
+X = X.drop(['TicketNumber'], axis=1)
+#normalize and standarize X
+standardized_list = ['Age','SibSp','Parch','Fare', 'Family_Size']# removed for overflow error,'TicketNumber']
+normalize_list = ['Pclass']
+X = standardize(X, standardized_list)
+X = normalize(X, normalize_list)
 y = train_df["Survived"]
 X_test = test_df.drop(["Age_Cut", "Fare_Cut"], axis = 1)
+X_test = standardize(X_test, standardized_list)
+X_test = normalize(X_test, normalize_list)
 
 X_train, X_valid, y_train, y_valid = train_test_split(X, y, test_size=0.2, stratify=y, random_state=42)
 
